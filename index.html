@@ -1,0 +1,197 @@
+
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Norgespris – enkel start</title>
+  <style>
+    :root{ --bg:#f7f7f8; --fg:#1f2937; --muted:#6b7280; --card:#fff; --border:#e5e7eb; --brand:#111827; }
+    *{ box-sizing: border-box; }
+    html,body{ margin:0; background:var(--bg); color:var(--fg); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; }
+    .wrap{ max-width: 960px; margin: 0 auto; padding: 16px; }
+    h1{ font-size: 22px; margin: 0 0 6px; }
+    p{ margin: 0 0 12px; color: var(--muted); }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; }
+    .grid{ display:grid; gap:12px; }
+    .g2{ grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .g3{ grid-template-columns: repeat(3,minmax(0,1fr)); }
+    @media (max-width:760px){ .g2,.g3{ grid-template-columns: 1fr; } }
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px;}
+    input[type="number"], select{ width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    input[type="range"]{ width:100%; }
+    .row{ display:flex; align-items:center; gap:8px; }
+    .muted{ color:var(--muted); font-size:13px; }
+    .pill{ display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; font-size:13px;}
+    .btn{ display:inline-block; padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:var(--brand); color:#fff; font-weight:600; text-decoration:none; }
+    .btn.secondary{ background:#fff; color:var(--fg); }
+    table{ width:100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th,td{ padding:8px 10px; border-bottom:1px solid var(--border); text-align:right; }
+    th:first-child, td:first-child{ text-align:left; }
+    tfoot td{ font-weight:700; }
+    .hr{ height:1px; background:var(--border); border:0; margin:8px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Norgespris – enkel start</h1>
+    <p>Fordel et årlig forbruk på måneder (vinter mer enn sommer), med mulighet for elbil-andel og fordeling mellom dag og natt.</p>
+
+    <div class="card grid g3">
+      <div>
+        <label for="annual">Årlig forbruk (kWh)</label>
+        <input id="annual" type="number" value="20000" min="0">
+      </div>
+      <div>
+        <label for="insul">Isolasjon / varmebehov</label>
+        <select id="insul">
+          <option value="normal" selected>Normal (standard profil)</option>
+          <option value="poor">Dårlig (større vintertopp)</option>
+          <option value="good">God (flatere profil)</option>
+        </select>
+        <div class="muted">Påvirker hvor mye forbruket varierer mellom vinter/sommer.</div>
+      </div>
+      <div>
+        <label>Elbil</label>
+        <div class="row">
+          <input id="ev" type="checkbox">
+          <span>Har elbil</span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label for="evshare" style="margin:0;min-width:140px">Andel til elbil (%)</label>
+          <input id="evshare" type="range" min="0" max="50" value="20" disabled>
+          <span id="evshareOut" class="pill">20%</span>
+        </div>
+        <div class="muted">Elbil-andelen fordeles jevnt over året.</div>
+      </div>
+    </div>
+
+    <div class="card grid g2" style="margin-top:12px">
+      <div>
+        <label for="night">Nattandel (%)</label>
+        <div class="row">
+          <input id="night" type="range" min="0" max="80" value="40">
+          <span id="nightOut" class="pill">40%</span>
+        </div>
+        <div class="muted">Hjelp: Har du planlagt nattlading/oppvarming, øk nattandelen. (Ofte lavere pris om natten.)</div>
+      </div>
+      <div>
+        <label for="daywindow">Definisjon av natt (timer)</label>
+        <select id="daywindow">
+          <option value="23-06" selected>23–06 = natt, 07–22 = dag</option>
+          <option value="22-06">22–06 = natt, 07–21 = dag</option>
+          <option value="00-07">00–07 = natt, 08–23 = dag</option>
+        </select>
+        <div class="muted">Påvirker antall natt-/dagtimer i syntetisk timefordeling.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="row" style="justify-content:space-between; flex-wrap:wrap; gap:8px">
+        <div class="muted">Resultat: månedsfordeling (kWh) + dag/natt-splitt</div>
+        <div class="row">
+          <a id="downloadCsv" class="btn secondary" href="#" download="forbruk_mnd.csv">Last ned CSV</a>
+        </div>
+      </div>
+      <hr class="hr">
+      <div style="overflow:auto">
+        <table id="tbl">
+          <thead>
+            <tr><th>Måned</th><th>Totalt (kWh)</th><th>Dag (kWh)</th><th>Natt (kWh)</th></tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr><td>SUM</td><td id="sumTot">–</td><td id="sumDay">–</td><td id="sumNight">–</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <p class="muted">Merk: Dette er en enkel modell. Vi bruker en standard sesongprofil som kan justeres etter isolasjon, og fordeler ev. elbil-andel jevnt over året. Natt/dag-splitt påvirkes av valgt nattdefinisjon og nattandel.</p>
+    <p class="muted">© <span id="yr"></span> – Demo. Neste versjon kan legge til spotpriser, strømstøtte/Norgespris-sammenligning og CSV fra Elhub.</p>
+  </div>
+
+<script>
+  const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Des"];
+  const BASE = [12.5,11.5,10.5,9,7.5,5.5,5,6,7,8.5,9.5,7];
+  const UNIFORM = 100/12;
+
+  function adjustedProfile(insul){
+    let factor = 1.0;
+    if (insul === "poor") factor = 1.3;
+    if (insul === "good") factor = 0.75;
+    const out = BASE.map(p => {
+      const dev = p - UNIFORM;
+      return UNIFORM + dev * factor;
+    });
+    const s = out.reduce((a,b)=>a+b,0);
+    return out.map(x => x * 100 / s);
+  }
+
+  function computeMonthly(annual, insul, evOn, evSharePct){
+    const prof = adjustedProfile(insul);
+    const evFrac = evOn ? (evSharePct/100) : 0;
+    const baseAnnual = annual * (1 - evFrac);
+    const evAnnual = annual * evFrac;
+    const perMonthEV = evAnnual / 12;
+    return prof.map(pct => baseAnnual * (pct/100) + perMonthEV);
+  }
+
+  function dayNightSplit(monthly, nightPct){
+    const nf = nightPct / 100;
+    return monthly.map(k => ({ total:k, night:k*nf, day:k*(1-nf) }));
+  }
+
+  function format(x){ return (Math.round(x*10)/10).toLocaleString("nb-NO"); }
+
+  const elAnnual = document.getElementById("annual");
+  const elInsul  = document.getElementById("insul");
+  const elEv     = document.getElementById("ev");
+  const elEvShare= document.getElementById("evshare");
+  const elEvOut  = document.getElementById("evshareOut");
+  const elNight  = document.getElementById("night");
+  const elNightOut = document.getElementById("nightOut");
+  const elTBody  = document.querySelector("#tbl tbody");
+  const elSumTot = document.getElementById("sumTot");
+  const elSumDay = document.getElementById("sumDay");
+  const elSumNight = document.getElementById("sumNight");
+  const elCsv    = document.getElementById("downloadCsv");
+  document.getElementById("yr").textContent = new Date().getFullYear();
+
+  function recalc(){
+    const annual = parseFloat(elAnnual.value||"0");
+    const insul  = elInsul.value;
+    const evOn   = elEv.checked;
+    const evPct  = parseInt(elEvShare.value,10);
+    const night  = parseInt(elNight.value,10);
+
+    elEvShare.disabled = !evOn;
+    elEvOut.textContent = evPct + "%";
+    elNightOut.textContent = night + "%";
+
+    const monthly = computeMonthly(annual, insul, evOn, evPct);
+    const rows = dayNightSplit(monthly, night);
+
+    elTBody.innerHTML = "";
+    let sumT=0, sumD=0, sumN=0;
+    rows.forEach((r,i)=>{
+      sumT+=r.total; sumD+=r.day; sumN+=r.night;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${MONTHS[i]}</td><td>${format(r.total)}</td><td>${format(r.day)}</td><td>${format(r.night)}</td>`;
+      elTBody.appendChild(tr);
+    });
+    elSumTot.textContent = format(sumT);
+    elSumDay.textContent = format(sumD);
+    elSumNight.textContent = format(sumN);
+
+    let csv = "Month,Total_kWh,Day_kWh,Night_kWh\n";
+    rows.forEach((r,i)=>{ csv += `${MONTHS[i]},${(Math.round(r.total*100)/100)},${(Math.round(r.day*100)/100)},${(Math.round(r.night*100)/100)}\n`; });
+    const blob = new Blob([csv], {type:"text/csv"});
+    elCsv.href = URL.createObjectURL(blob);
+  }
+
+  [elAnnual, elInsul, elEv, elEvShare, elNight].forEach(el => el.addEventListener("input", recalc));
+  recalc();
+</script>
+</body>
+</html>
